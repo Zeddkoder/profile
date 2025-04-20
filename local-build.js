@@ -1,11 +1,17 @@
 // Script pour construire l'application en local
 // Exécuter avec: node local-build.js
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { loadEnv } from './server/loadEnv.mjs';
 
 // Charger les variables d'environnement depuis .env
-require('./server/loadEnv')();
+loadEnv();
+
+// Obtenir le chemin du répertoire actuel
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Définir l'environnement de production
 process.env.NODE_ENV = 'production';
@@ -14,14 +20,14 @@ console.log('🚀 Début de la construction...');
 
 try {
   // Créer le dossier dist s'il n'existe pas
-  const distDir = path.join(__dirname, 'dist');
-  if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, { recursive: true });
+  const distDir = join(__dirname, 'dist');
+  if (!existsSync(distDir)) {
+    mkdirSync(distDir, { recursive: true });
   }
   
   // Vérifier que les dépendances sont installées
   console.log('📋 Vérification des dépendances...');
-  if (!fs.existsSync(path.join(__dirname, 'node_modules'))) {
+  if (!existsSync(join(__dirname, 'node_modules'))) {
     console.log('📦 Installation des dépendances...');
     execSync('npm install', { stdio: 'inherit' });
   }
@@ -31,6 +37,11 @@ try {
   
   console.log('📦 Construction du backend...');
   execSync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', { stdio: 'inherit' });
+  
+  // Créer un fichier d'entrée sur mesure pour faciliter l'importation en ESM
+  console.log('📝 Création du fichier d\'entrée...');
+  const entryContent = "// Fichier d'entrée généré automatiquement\nexport * from './index.js';\n";
+  writeFileSync(join(distDir, 'entry.js'), entryContent);
   
   console.log('✅ Construction terminée avec succès!');
   console.log('');
