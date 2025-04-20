@@ -59,11 +59,14 @@ app.use((req, res, next) => {
   // Utiliser le port configuré (par défaut 5000)
   // Le serveur gère à la fois l'API et le client
   const port = config.PORT;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  const host = process.platform === 'win32' ? 'localhost' : '0.0.0.0';
+  
+  // Windows ne supporte pas certaines options comme reusePort
+  const options = process.platform === 'win32' 
+    ? { port, host } 
+    : { port, host, reusePort: true };
+
+  server.listen(options, () => {
     log(`Serveur démarré sur http://localhost:${port}`);
     log(`Environnement: ${config.NODE_ENV}`);
   });
